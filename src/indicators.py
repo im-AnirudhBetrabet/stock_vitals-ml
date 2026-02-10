@@ -49,8 +49,11 @@ def calculate_bollinger_bands(df: pd.DataFrame, window: int = 20) -> pd.DataFram
     sma = df['Close'].rolling(window=window).mean()
     std = df['Close'].rolling(window=window).std()
 
-    df[f'{window}_BB_Upper'] = sma + 2 * std
-    df[f'{window}_BB_Lower'] = sma - 2 * std
+    bb_upper = sma + 2 * std
+    bb_lower = sma - 2 * std
+
+    df['BB_Position'] = (df['Close'] - bb_lower) / (bb_upper - bb_lower)
+    df['BB_Width']    = (bb_upper - bb_lower) / sma
     return df
 
 def calculate_ema(df: pd.DataFrame, window: int = 20) -> pd.DataFrame:
@@ -83,8 +86,24 @@ def calculate_macd(df: pd.DataFrame) -> pd.DataFrame:
 
     macd_hist = macd_line - macd_signal
 
-    df['MACD_line']   = macd_line
-    df['MACD_signal'] = macd_signal
-    df['MACD_Hist']   = macd_hist
+    df['MACD_Line_Norm']   = macd_line   / df['Close']
+    df['MACD_Signal_Norm'] = macd_signal / df['Close']
+    df['MACD_Hist_Norm']   = macd_hist   / df['Close']
+
+    return df
+
+
+def calculate_relative_volume(df: pd.DataFrame, window: int = 20) -> pd.DataFrame:
+    """
+    Function to calculate the relative volume over the given window
+    Formula : Volume / Average volume for window
+    Args:
+        df (pd.DataFrame): The raw OHLCV data for the stock
+        window (int)     : The window over which the average volume will be calculated
+    """
+    if 'Volume' not in df.columns:
+        raise ValueError("Volume not found in dataframe. Cannot determine relative volume.")
+    average_volume = df['Volume'].rolling(window=window).mean()
+    df[f'{window}_RVol'] = df['Volume'] / average_volume
 
     return df
