@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+
 
 def calculate_sma(df: pd.DataFrame, window: int = 20) -> pd.DataFrame:
     """
@@ -105,5 +107,67 @@ def calculate_relative_volume(df: pd.DataFrame, window: int = 20) -> pd.DataFram
         raise ValueError("Volume not found in dataframe. Cannot determine relative volume.")
     average_volume = df['Volume'].rolling(window=window).mean()
     df[f'{window}_RVol'] = df['Volume'] / average_volume
+
+    return df
+
+def calculate_atr(df: pd.DataFrame, window: int=14) -> pd.DataFrame:
+    """
+    Calculates the Average True Range (ATR) using Wilder's smoothing.
+    Formula:
+        TR = Max( (High - Low), Abs(High - PrevClose), Abs(Low - PrevClose))
+        ATR = EMA(TR, alpha=1 / period)
+    """
+
+    df = df.copy()
+
+    ## Calculate previous close
+    prev_close = df['Close'].shift(1)
+
+    tr1 =  df['High']- df['Low']          ## Current High - Current Low
+    tr2 = (df['High']- prev_close).abs()  ## Current High - Previous Close
+    tr3 = (df['Low'] - prev_close).abs()  ## Current Low  - Previous Close
+
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    df['ATR'] = tr.ewm(alpha=1/window, adjust=False).mean()
+
+    return df
+
+def calculate_adx(df: pd.DataFrame, window: int=14) -> pd.DataFrame:
+    """
+    Calculates ADX (Average Directional Index) to determine Trend Strength.
+    Logic:
+        1. Calculate +DM (Bullish Move) and -DM (Bearish Move).
+        2. Smooth them using Wilder's method.
+        3. Calculate +DI and -DI (Directional Indicators).
+        4. Calculate DX (Directional Index).
+        5. Smooth DX to get ADX.
+    """
+
+    if 'ATR' not in df.columns:
+        df = calculate_atr(df, window=window)
+
+    ## Calculate +DM (Bullish Move)
+    ### +DM = Current High - Previous High ( if positive and > -DM )
+    high_diff = df['High'].diff()
+
+    ### -DM = Current Low - Previous low ( if positive and > +DM )
+    low_diff = df['Low'].diff().abs()
+
+    plus_dm  = np.where((high_diff > low_diff ) & (high_diff > 0), high_diff, 0.0)
+    minus_dm = np.where((low_diff  > high_diff) & (df['Low'].diff() < 0), low_diff, 0.0)
+
+    plus_dm_smooth = pd.Series(plus_dm, index=df.index).ewm(alpha=1 / window, adjust=False).mean()
+    minus_dm_smooth = pd.Series(minus_dm, index=df.index).ewm(alpha=1 / window, adjust=False).mean()
+
+    # Calculate +DI and -DI
+    # Formula: (Smoothed DM / ATR) * 100
+    plus_di = 100 * (plus_dm_smooth / (df['ATR'] + 1e-10))
+    minus_di = 100 * (minus_dm_smooth / (df['ATR'] + 1e-10))
+
+    # Calculate DX
+    dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di + 1e-10)
+
+    # Calculate ADX (Smooth DX)
+    df['ADX'] = dx.ewm(alpha=1 / window, adjust=False).mean()
 
     return df

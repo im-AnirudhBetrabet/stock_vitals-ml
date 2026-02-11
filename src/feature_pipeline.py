@@ -51,15 +51,17 @@ def apply_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     # Momentum
     ## Relative strength indicator for 14-day window
     df = calculate_rsi(df, window=14)
+    df['RSI_Delta'] = df['14_RSI'].diff(3)
 
     ## Normalized Moving Average Convergence divergence
     df = calculate_macd(df)
-
+    df['MACD_Hist_Delta'] = df['MACD_Hist_Norm'].diff(2)
     ## Normalized Bollinger bands
     df = calculate_bollinger_bands(df, window=20)
 
     ## Volume
     df = calculate_relative_volume(df, 20)
+    df['Vol_Surge'] = df['Volume'] / df['Volume'].rolling(window=5).mean()
     return df
 
 def save_processed_dataframe(df: pd.DataFrame, ticker: str):
@@ -79,7 +81,7 @@ def save_processed_dataframe(df: pd.DataFrame, ticker: str):
         '14_RSI',
         'MACD_Line_Norm', 'MACD_Signal_Norm', 'MACD_Hist_Norm',
         'BB_Position', 'BB_Width',
-        '20_RVol'
+        '20_RVol', 'RSI_Delta', 'MACD_Hist_Delta', 'Vol_Surge'
     ]
 
     final_cols = [c for c in features_to_keep if c in sliced_df.columns]
