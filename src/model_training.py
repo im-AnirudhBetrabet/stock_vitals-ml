@@ -28,7 +28,7 @@ def train_random_forest_model():
     print(f"Training Random Forest Classifier model on {len(x_train)} rows, Testing on {len(x_test)} rows.")
 
     # Train
-    random_forest_model = RandomForestClassifier(n_estimators=200, min_samples_leaf=50, n_jobs=-1, random_state=42, class_weight='balanced_subsample')
+    random_forest_model = RandomForestClassifier(n_estimators=200, min_samples_leaf=10, n_jobs=-1, random_state=42, max_features='sqrt', class_weight='balanced_subsample')
     random_forest_model.fit(x_train, y_train)
 
     # Test
