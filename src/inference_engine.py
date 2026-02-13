@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 import joblib
 from src.indicators import calculate_sma, calculate_rsi, calculate_ema, calculate_macd, calculate_bollinger_bands, \
@@ -9,6 +9,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
+from src.support_resistance import level_predictor
 
 
 class StockPredictor:
@@ -124,21 +125,24 @@ class StockPredictor:
     def predict(self, ticker):
         data = self._load_data(ticker)
         if data is not None:
+
             processed_data   : pd.DataFrame     = self._calculator_indicators(data)
             features         : pd.DataFrame     = self._prepare_features(processed_data)
-            regime_prediction: list             = self.model.predict_proba(features)
-            bullish_regime   : float            = regime_prediction[0][1]
-            bearish_regime   : float            = regime_prediction[0][0]
+            regime_prediction: list             = self.model.predict_proba(features)[0]
+            class_map        : Dict[Any,Any]    = {self.model.classes_[0]: regime_prediction[0],  self.model.classes_[1]: regime_prediction[1] }
+            bullish_regime   : float            = class_map[1]
+            bearish_regime   : float            = class_map[0]
             latest_indicators: pd.DataFrame     = processed_data.iloc[[-1]]
             trade_levels     : dict[str, float] = self._calculate_trade_levels(latest_indicators['Close'].item(), latest_indicators['ATR'].item())
             signal           : str              = self._get_signal_strength(bullish_regime, latest_indicators['ADX'].item())
-
+            sprt_rst_levels  : dict[str, Any]   = level_predictor.get_levels(data)
             return {
                 "ticker"             : ticker,
                 "bullish_probability": bullish_regime,
                 "bearish_probability": bearish_regime,
                 "trade_levels"       : trade_levels,
-                "signal"             : signal
+                "signal"             : signal,
+                "support_resistance" : sprt_rst_levels
             }
 
 def inference_engine(ticker: str):
@@ -152,8 +156,6 @@ if __name__ == "__main__":
     inference_engine("PREMIERENE.NS")
     inference_engine("BLACKBUCK.NS")
     inference_engine("GROWW.NS")
-    inference_engine("INFY.NS")
-    inference_engine("ASHOKLEY.NS")
 
 
 
