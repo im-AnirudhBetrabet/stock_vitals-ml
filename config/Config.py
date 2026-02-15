@@ -48,6 +48,11 @@ class Config:
     ]
 
     @property
+    def indices(self):
+        indices = self._config.get("indices", [])
+        return indices
+
+    @property
     def current_model_version(self):
         return self._config['data']['current_model_version']
 
