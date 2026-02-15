@@ -1,6 +1,8 @@
 from joblib import load, dump
 from sklearn.ensemble import VotingClassifier
 from pathlib import Path
+
+from config.Config import config
 from src.data import data
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -9,11 +11,11 @@ from src.evaluate_model_confidence import evaluate_model_confidence
 
 # -- Path Setup
 PARENT_DIR = Path(__file__).parent.parent
-MODELS_DIR = PARENT_DIR / "models"
+MODELS_DIR = PARENT_DIR / "models" / config.current_model_version
 
 def get_random_classifier_model():
     print("Loading Random forest classifier model..")
-    file_path = MODELS_DIR / "random_forest_model.pkl"
+    file_path = MODELS_DIR / f"random_forest_model_{config.current_model_version}.pkl"
     if not file_path.exists():
         raise FileNotFoundError(f"Random forest classifier was not found in {MODELS_DIR}")
     model = load(file_path)
@@ -22,7 +24,7 @@ def get_random_classifier_model():
 
 def get_xgboost_classifier_model():
     print("Loading XG Boost classifier model..")
-    file_path = MODELS_DIR / "xgb_classifier_model.pkl"
+    file_path = MODELS_DIR / f"xgb_classifier_model_{config.current_model_version}.pkl"
     if not file_path.exists():
         raise FileNotFoundError(f"XG-Boost classifier was not found in {MODELS_DIR}")
     model = load(file_path)
@@ -51,7 +53,7 @@ def train_ensemble_model():
         voting="soft"
     )
     voting_classifier.fit(x_train, y_train)
-    dump(voting_classifier, MODELS_DIR/ "voting_classifier.pkl")
+    dump(voting_classifier, MODELS_DIR/ f"voting_classifier_{config.current_model_version}.pkl")
 
     rfc_metrics = evaluate_model_confidence("Random Forest Classifier", rfc_model        , x_test, y_test)
     xgb_metrics = evaluate_model_confidence("XG Boost Classifier"     , xgb_model        , x_test, y_test)

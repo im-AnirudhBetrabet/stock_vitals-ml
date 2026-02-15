@@ -1,3 +1,5 @@
+import os
+
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 from sklearn.metrics import precision_score
@@ -9,8 +11,9 @@ import joblib
 
 PARENT_DIR         = Path(__file__).parent.parent
 PROCESSED_DATA_DIR = PARENT_DIR / config['data']['processed_path']
-MODELS_DIR         = PARENT_DIR / "models"
+MODELS_DIR         = PARENT_DIR / "models" / config.current_model_version
 
+os.makedirs(MODELS_DIR, exist_ok=True)
 
 def train_random_forest_model():
     print("Starting training...")
@@ -39,7 +42,7 @@ def train_random_forest_model():
     print(f"🎯Random Forest Classifier MODEL PRECISION: {precision:.4f}")
     print("=" * 30)
 
-    joblib.dump(random_forest_model, MODELS_DIR / "random_forest_model.pkl")
+    joblib.dump(random_forest_model, MODELS_DIR / f"random_forest_model_{config.current_model_version}.pkl")
 
 def train_xgboost_model():
     print("Starting training...")
@@ -73,7 +76,7 @@ def train_xgboost_model():
     print(f"🎯 XG Boost MODEL PRECISION: {precision:.4f}")
     print("=" * 30)
 
-    joblib.dump(xgb_classifier, MODELS_DIR / "xgb_classifier_model.pkl")
+    joblib.dump(xgb_classifier, MODELS_DIR / f"xgb_classifier_model_{config.current_model_version}.pkl")
 
 
 def main():

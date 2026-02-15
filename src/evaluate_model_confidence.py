@@ -9,6 +9,9 @@ from sklearn.metrics import (
   precision_score
 )
 
+from config.Config import config
+
+
 def evaluate_model_confidence(name, model, x_test, y_test):
     """
     Checks if higher confidence = higher precision.
@@ -63,16 +66,17 @@ if __name__ == "__main__":
     from joblib import load
     from pathlib import Path
     from src.data import data
-
+    PARENT_DIR = Path(__file__).parent.parent
     test_data = data.test_data
-    x_test = test_data.drop(columns=['Target'])
-    y_test = test_data['Target']
+    x_test  = test_data.drop(columns=['Target'])
+    y_test  = test_data['Target']
     results = []
-    threshold_metrics = []
+    threshold_metrics    = []
     threshold_metrics_df = pd.DataFrame()
-    for model_name in ["random_forest_model.pkl", "xgb_classifier_model.pkl", "voting_classifier.pkl"]:
+    reports_path         = PARENT_DIR / config['data']['reports_path'] / config.current_model_version
+    for model_name in [f"random_forest_model_{config.current_model_version}.pkl", f"xgb_classifier_model_{config.current_model_version}.pkl", f"voting_classifier_{config.current_model_version}.pkl"]:
         PARENT_DIR = Path(__file__).parent.parent
-        MODELS_DIR = PARENT_DIR / "models" / model_name
+        MODELS_DIR = PARENT_DIR / "models" / config.current_model_version / model_name
         model      = load(MODELS_DIR)
         results.append(evaluate_core_metrics(model_name.split(".")[0], model, x_test, y_test))
         threshold_metrics_df = pd.concat([threshold_metrics_df, pd.DataFrame(evaluate_model_confidence(model_name.split(".")[0], model, x_test, y_test), columns=['Model', 'Threshold', 'Number of Trades', 'Precision', 'Coverage'])])
@@ -81,4 +85,6 @@ if __name__ == "__main__":
 
     print(pd.DataFrame(results).set_index('model_name'))
     print(threshold_metrics_df)
-    threshold_metrics_df.pivot(index='Model', columns='Threshold',  values=['Precision', 'Coverage']).to_csv('metrics.csv')
+
+    report_name = reports_path / f'{config.current_model_version}_performance_metrics.csv'
+    threshold_metrics_df.pivot(index='Threshold', columns='Model',  values=['Precision', 'Coverage']).to_csv(report_name)

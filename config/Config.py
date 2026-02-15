@@ -47,6 +47,10 @@ class Config:
         '20_RVol', 'RSI_Delta', 'MACD_Hist_Delta', 'Vol_Surge'
     ]
 
+    @property
+    def current_model_version(self):
+        return self._config['data']['current_model_version']
+
 
 config = Config()
 

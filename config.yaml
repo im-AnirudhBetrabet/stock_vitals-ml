@@ -1,9 +1,10 @@
 data:
-  start_date    : "2017-01-01"
-  end_date      : "2025-12-31"
-  raw_path      : "data/raw"
-  processed_path: "data/processed"
-
+  start_date           : "2017-01-01"
+  end_date             : "2025-12-31"
+  raw_path             : "data/raw"
+  processed_path       : "data/processed"
+  reports_path         : "model_performance_reports"
+  current_model_version: "v1"
 tickers:
   nifty_50:
     - "ADANIENT.NS"
