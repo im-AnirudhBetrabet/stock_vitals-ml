@@ -1,6 +1,9 @@
+import json
 from typing import Optional, Dict, Any
 
 import joblib
+
+from config.Config import config
 from src.indicators import calculate_sma, calculate_rsi, calculate_ema, calculate_macd, calculate_bollinger_bands, \
     calculate_relative_volume, calculate_atr, calculate_adx
 import pandas as pd
@@ -75,16 +78,11 @@ class StockPredictor:
 
     def _prepare_features(self, df: pd.DataFrame) -> pd.DataFrame:
 
-        features_to_keep = [
-            'Dist_SMA_200', 'Dist_SMA_50', 'Dist_SMA_20', 'Trend_Speed',
-            '14_RSI',
-            'MACD_Line_Norm', 'MACD_Signal_Norm', 'MACD_Hist_Norm',
-            'BB_Position', 'BB_Width',
-            '20_RVol', 'RSI_Delta', 'MACD_Hist_Delta', 'Vol_Surge'
-        ]
+        features_to_keep = config.feature_columns
         final_cols  = [c for c in features_to_keep if c in df.columns]
         latest_data = df[final_cols].copy()
         latest_data.fillna(0, inplace=True)
+        latest_data.drop(columns=['Close'], inplace=True)
         latest_data = latest_data.iloc[[-1]]
         return latest_data
 
@@ -100,11 +98,17 @@ class StockPredictor:
 
     def _calculate_trade_levels(self, price: float, atr: float) -> Dict[str, float]:
         trade_levels = {}
-        stop_loss: float = price - (2.0 * atr)
-        target_1 : float = price + (2.0 * atr)
-        target_2 : float = price + (4.0 * atr)
-        target_3 : float = price + (8.0 * atr)
-        trade_levels['stop_loss'] = stop_loss
+        stop_loss_1: float = price - (1.0 * atr)
+        stop_loss_2: float = price - (1.5 * atr)
+        stop_loss_3: float = price - (2.0 * atr)
+
+        target_1 : float = price + (1.5 * atr)
+        target_2 : float = price + (2.0 * atr)
+        target_3 : float = price + (2.5 * atr)
+
+        trade_levels['stop_loss_1'] = stop_loss_1
+        trade_levels['stop_loss_2'] = stop_loss_2
+        trade_levels['stop_loss_3'] = stop_loss_3
         trade_levels['target_1']  = target_1
         trade_levels['target_2']  = target_2
         trade_levels['target_3']  = target_3
@@ -152,10 +156,10 @@ def inference_engine(ticker: str):
 
 
 if __name__ == "__main__":
-    inference_engine("SAATVIKGL.NS")
-    inference_engine("PREMIERENE.NS")
-    inference_engine("BLACKBUCK.NS")
-    inference_engine("GROWW.NS")
+    json.dumps(inference_engine("SAATVIKGL.NS"))
+    json.dumps(inference_engine("PREMIERENE.NS"))
+    json.dumps(inference_engine("BLACKBUCK.NS"))
+    json.dumps(inference_engine("GROWW.NS"))
 
 
 

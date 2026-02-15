@@ -36,6 +36,17 @@ class Config:
         tickers = nifty_fifty_tickers + nifty_next_fifty_tickers + historical_constituents
         return sorted(list(set(tickers)))
 
+    @property
+    def feature_columns(self):
+        return [
+        'Close',
+        'Dist_SMA_200', 'Dist_SMA_50', 'Dist_SMA_20', 'Trend_Speed',
+        '14_RSI',
+        'MACD_Line_Norm', 'MACD_Signal_Norm', 'MACD_Hist_Norm',
+        'BB_Position', 'BB_Width',
+        '20_RVol', 'RSI_Delta', 'MACD_Hist_Delta', 'Vol_Surge'
+    ]
+
 
 config = Config()
 

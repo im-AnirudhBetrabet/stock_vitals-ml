@@ -75,14 +75,7 @@ def save_processed_dataframe(df: pd.DataFrame, ticker: str):
     safe_ticker: str  = ticker.replace(".NS", "_NS")
     file_path  : Path = PROCESSED_DATA_DIR / f"{safe_ticker}.csv"
     sliced_df = df.loc["2018-01-01":].dropna()
-    features_to_keep = [
-        'Close',
-        'Dist_SMA_200', 'Dist_SMA_50', 'Dist_SMA_20', 'Trend_Speed',
-        '14_RSI',
-        'MACD_Line_Norm', 'MACD_Signal_Norm', 'MACD_Hist_Norm',
-        'BB_Position', 'BB_Width',
-        '20_RVol', 'RSI_Delta', 'MACD_Hist_Delta', 'Vol_Surge'
-    ]
+    features_to_keep = config.feature_columns
 
     final_cols = [c for c in features_to_keep if c in sliced_df.columns]
     sliced_df = sliced_df[final_cols]
