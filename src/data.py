@@ -1,4 +1,4 @@
-from config.Config import Config, config
+from config.Config import config
 from pathlib import Path
 import pandas as pd
 

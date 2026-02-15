@@ -57,9 +57,9 @@ def train_ensemble_model():
     xgb_metrics = evaluate_model_confidence("XG Boost Classifier"     , xgb_model        , x_test, y_test)
     vc_metrics  = evaluate_model_confidence("Voting Classifier"       , voting_classifier, x_test, y_test)
 
-    df_rfc = pd.DataFrame(rfc_metrics, columns=['Threshold', 'Precision'])
-    df_xgb = pd.DataFrame(xgb_metrics, columns=['Threshold', 'Precision'])
-    df_vc  = pd.DataFrame(vc_metrics , columns=['Threshold', 'Precision'])
+    df_rfc = pd.DataFrame(rfc_metrics, columns=['Name', 'Threshold', 'Number of Trades', 'Precision', 'Coverage'])
+    df_xgb = pd.DataFrame(xgb_metrics, columns=['Name', 'Threshold', 'Number of Trades', 'Precision', 'Coverage'])
+    df_vc  = pd.DataFrame(vc_metrics , columns=['Name', 'Threshold', 'Number of Trades', 'Precision', 'Coverage'])
 
     plt.figure(figsize=(10, 6))
     sns.lineplot(data=df_rfc, x='Threshold', y='Precision', label='Random Forest'  , marker='o', linestyle='--')
