@@ -11,14 +11,14 @@ import yfinance as yf
 from pathlib import Path
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-
+from config.Config import config
 from src.support_resistance import level_predictor
 
 
 class StockPredictor:
     def __init__(self):
         self.PARENT_DIR : Path     = Path(__file__).parent.parent
-        self.MODEL_PATH : Path     = self.PARENT_DIR / "models" / "voting_classifier.pkl"
+        self.MODEL_PATH : Path     = self.PARENT_DIR / "models" / config.current_model_version / f"voting_classifier_{config.current_model_version}.pkl"
         self._current_date         = datetime.now()
         self._date_minus_1_5_years = self._current_date - relativedelta(years=1, months=6)
         self._next_day             = self._current_date + timedelta(days=1)

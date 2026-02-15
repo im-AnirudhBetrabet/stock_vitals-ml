@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import numpy as np
 from sklearn.metrics import (
@@ -74,6 +76,7 @@ if __name__ == "__main__":
     threshold_metrics    = []
     threshold_metrics_df = pd.DataFrame()
     reports_path         = PARENT_DIR / config['data']['reports_path'] / config.current_model_version
+    os.makedirs(reports_path, exist_ok=True)
     for model_name in [f"random_forest_model_{config.current_model_version}.pkl", f"xgb_classifier_model_{config.current_model_version}.pkl", f"voting_classifier_{config.current_model_version}.pkl"]:
         PARENT_DIR = Path(__file__).parent.parent
         MODELS_DIR = PARENT_DIR / "models" / config.current_model_version / model_name
