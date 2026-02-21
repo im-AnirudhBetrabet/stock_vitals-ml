@@ -54,8 +54,19 @@ class Config:
 
     @property
     def current_model_version(self):
-        return self._config['data']['current_model_version']
+        return self._config['model']['current_model_version']
 
+    @property
+    def index_features_to_drop(self):
+        return [
+            "Close", "Open",
+            "High", "Low",
+            "Volume"
+        ]
+
+    @property
+    def returns_horizon(self):
+        return self._config['model']['returns_horizon']
 
 config = Config()
 

@@ -1,5 +1,7 @@
 import pandas as pd
-from src.indicators import calculate_sma, calculate_rsi, calculate_ema, calculate_macd, calculate_bollinger_bands, calculate_relative_volume
+from src.indicators import (calculate_sma, calculate_rsi,
+                            calculate_ema, calculate_macd, calculate_bollinger_bands,
+                            calculate_relative_volume, calculate_atr, calculate_adx)
 from pathlib import Path
 from config.Config import config
 import os
@@ -62,6 +64,11 @@ def apply_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     ## Volume
     df = calculate_relative_volume(df, 20)
     df['Vol_Surge'] = df['Volume'] / df['Volume'].rolling(window=5).mean()
+    ## Average True range
+    df = calculate_atr(df, window=14)
+
+    ## Average Directional Index
+    df = calculate_adx(df, window=14)
     return df
 
 def save_processed_dataframe(df: pd.DataFrame, ticker: str):
@@ -74,13 +81,52 @@ def save_processed_dataframe(df: pd.DataFrame, ticker: str):
     """
     safe_ticker: str  = ticker.replace(".NS", "_NS")
     file_path  : Path = PROCESSED_DATA_DIR / f"{safe_ticker}.csv"
-    sliced_df = df.loc["2018-01-01":].dropna()
+    sliced_df         = df.loc["2018-01-01":]
     features_to_keep = config.feature_columns
 
     final_cols = [c for c in features_to_keep if c in sliced_df.columns]
     sliced_df = sliced_df[final_cols]
 
     sliced_df.to_csv(file_path)
+
+def save_processed_index_df(df: pd.DataFrame, index: str):
+    """
+    Saves the processed index data to a csv file in the processed data directory.
+    """
+    safe_ticker: str       = index.replace("^", "")
+    file_path: Path        = PROCESSED_DATA_DIR / f"{safe_ticker}.csv"
+    sliced_df:pd.DataFrame = df.loc["2018-01-01":].dropna()
+    features_to_drop: list = config.index_features_to_drop
+
+    # final_cols = [c for c in features_to_drop if c in sliced_df.columns]
+    sliced_df = sliced_df.drop(columns=features_to_drop)
+
+    sliced_df.to_csv(file_path)
+
+def apply_technical_indicators_to_indices(index: str, df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Applies the following indicators to the index.
+    1. ret_5d     : percentage returns for a 5-day window.
+    2. ret_20d    : percentage returns for a 20-day window.
+    3. above_50SMA: boolean indicating if the current value is over the 50-day SMA.
+    4. 20d_vol    : volatility of the index over a 20-day window.
+    5. rsi_14     : relative strength index for a 14-day window.
+    Args:
+        index            : The name of the index
+        df (pd.DataFrame): Historical OHLC data for the index.
+    Returns:
+        pd.DataFrame
+    """
+    df = df.copy()
+
+    df[f'{index}_ret_5d']      = df['Close'].pct_change(periods=5)
+    df[f'{index}_ret_20d']     = df['Close'].pct_change(periods=20)
+    sma_50                     = df['Close'].rolling(window=50).mean()
+    df[f'{index}_above_50SMA'] = ( df['Close'] > sma_50 ).astype(int)
+    df[f'{index}_20d_vol']     = df['Close'].pct_change().rolling(window=20).std()
+    df                         = calculate_rsi(df, window=14)
+    df.rename(columns={'14_RSI' : f'{index}_rsi_14'}, inplace=True)
+    return df
 
 def main():
     for ticker in config.tickers:
@@ -92,6 +138,14 @@ def main():
             print(f"[{ticker}] processed successfully")
         except FileNotFoundError:
             print(f"Skipping {ticker} as raw data file was not found")
+    for index in config.indices:
+        safe_index = index.replace("^", "")
+        try:
+            df             = load_dataframe(safe_index)
+            transformed_df = apply_technical_indicators_to_indices(safe_index, df)
+            save_processed_index_df(transformed_df, safe_index)
+        except FileNotFoundError:
+            print(f"Skipping {index} as raw data file was not found")
 
 if __name__ == "__main__":
     main()

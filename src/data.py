@@ -14,6 +14,19 @@ class Data:
         if not self.DATA_DIR.exists():
             raise RuntimeError("Critical error. Processed directory is not found.")
         master_data: list = []
+        index_data : list = []
+        for index in config.indices:
+            safe_index = index.replace("^", "")
+            index_path = self.DATA_DIR / f"{safe_index}.csv"
+            if not index_path.exists():
+                print(f"Skipping data for [{safe_index}] as corresponding file was not found in processed data folder")
+                continue
+            index_df = pd.read_csv(index_path, index_col=['Date'], parse_dates=True)
+            index_data.append(index_df)
+        index_master = index_data[0]
+        for df in index_data[1:]:
+            index_master = index_master.join(df, how='left')
+
         for ticker in config.tickers:
             safe_ticker     = ticker.replace(".NS", "_NS")
             curr_file_path  = self.DATA_DIR / f"{safe_ticker}.csv"
@@ -25,11 +38,13 @@ class Data:
 
             temp_df = temp_df.apply(pd.to_numeric, errors='coerce')
 
-            ## Calculate the target column: Did tomorrow close higher that today.
-            temp_df['Target'] = ( temp_df['Close'].shift(-1) > temp_df['Close'] ).astype(int)
+            ## Calculate the target column: Did price 5 days ahead close higher than today
+            temp_df = temp_df.join(index_master, how='left')
+            temp_df[index_master.columns] = temp_df[index_master.columns].ffill()
 
-            ## Dropping the last row as it is redundant
-            temp_df = temp_df.iloc[:-1]
+            temp_df['Target'] = ( temp_df['Close'].shift(-int(config.returns_horizon)) > temp_df['Close'] ).astype(int)
+            ## Dropping redundant rows that may contain NaN due to target calculation
+            temp_df = temp_df.dropna(subset=['Target'])
 
             ## Dropping 'Close'
             temp_df.drop(columns=['Close'], inplace=True)
@@ -55,4 +70,11 @@ class Data:
         return self._data[self._data.index > self._cutoff_date]
 
 data = Data()
+if __name__ == "__main__":
+    print(data.training_data.shape)
+    print(data.test_data.shape)
+    print(data.training_data.isna().sum().sum())
+    print(data.test_data.isna().sum().sum())
+    print(data.training_data['Target'].mean())
+    print(data.test_data['Target'].mean())
 

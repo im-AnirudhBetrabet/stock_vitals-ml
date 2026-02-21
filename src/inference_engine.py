@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any
 import joblib
 
 from config.Config import config
+from src.feature_pipeline import apply_technical_indicators, apply_technical_indicators_to_indices
 from src.indicators import calculate_sma, calculate_rsi, calculate_ema, calculate_macd, calculate_bollinger_bands, \
     calculate_relative_volume, calculate_atr, calculate_adx
 import pandas as pd
@@ -87,7 +88,7 @@ class StockPredictor:
         return latest_data
 
     def _load_data(self, ticker) -> Optional[pd.DataFrame]:
-        data = yf.download(tickers=ticker, interval='1d', start=self._date_minus_1_5_years, end=self._next_day)
+        data = yf.download(progress=False,tickers=ticker, interval='1d', start=self._date_minus_1_5_years, end=self._next_day)
         if data.shape[0] == 0:
             print(f"No data found for ticker {ticker}")
             return None
@@ -95,6 +96,27 @@ class StockPredictor:
             if isinstance(data.columns, pd.MultiIndex):
                 data.columns = data.columns.droplevel(1)
         return data
+
+    def _load_indices(self) -> Optional[pd.DataFrame]:
+        index_data = []
+        for index in config.indices:
+            if not index.startswith("^"):
+                f"^{index}"
+            try:
+                data = yf.download(progress=False, tickers=index, start=self._date_minus_1_5_years, end=self._next_day, interval='1d')
+                if isinstance(data.columns, pd.MultiIndex):
+                    data.columns = data.columns.droplevel(1)
+                processed_data = apply_technical_indicators_to_indices(index.replace("^", ""), data)
+                sliced_df = processed_data.drop(columns=config.index_features_to_drop)
+                if isinstance(sliced_df.columns, pd.MultiIndex):
+                    sliced_df.columns = sliced_df.columns.droplevel(1)
+                index_data.append(sliced_df)
+            except Exception as e:
+                print(f"Critical Error | An unexpected error occurred while fetching data for {index} from yfinance: {e}")
+        index_master = index_data[0]
+        for df in index_data[1:]:
+            index_master = index_master.join(df, how='left')
+        return index_master.iloc[[-1]]
 
     def _calculate_trade_levels(self, price: float, atr: float) -> Dict[str, float]:
         trade_levels = {}
@@ -129,9 +151,11 @@ class StockPredictor:
     def predict(self, ticker):
         data = self._load_data(ticker)
         if data is not None:
-
-            processed_data   : pd.DataFrame     = self._calculator_indicators(data)
+            index_data       : pd.DataFrame     = self._load_indices()
+            processed_data   : pd.DataFrame     = apply_technical_indicators(data)
             features         : pd.DataFrame     = self._prepare_features(processed_data)
+            features = features.join(index_data, how='left')
+            features.to_csv("featurs.csv")
             regime_prediction: list             = self.model.predict_proba(features)[0]
             class_map        : Dict[Any,Any]    = {self.model.classes_[0]: regime_prediction[0],  self.model.classes_[1]: regime_prediction[1] }
             bullish_regime   : float            = class_map[1]
@@ -151,15 +175,26 @@ class StockPredictor:
 
 def inference_engine(ticker: str):
     predictor = StockPredictor()
-    print(predictor.predict(ticker))
+    return predictor.predict(ticker)
 
 
 
 if __name__ == "__main__":
-    json.dumps(inference_engine("SAATVIKGL.NS"))
-    json.dumps(inference_engine("PREMIERENE.NS"))
-    json.dumps(inference_engine("BLACKBUCK.NS"))
-    json.dumps(inference_engine("GROWW.NS"))
+    print(json.dumps(inference_engine("SAATVIKGL.NS")))
+    print(json.dumps(inference_engine("INOXWIND.NS")))
+    print(json.dumps(inference_engine("MARKSANS.NS")))
+    print(json.dumps(inference_engine("BLACKBUCK.NS")))
+    print(json.dumps(inference_engine("PROSTARM.NS")))
+    print(json.dumps(inference_engine("EBGNG.NS")))
+    print(json.dumps(inference_engine("JUNIPER.NS")))
+    print(json.dumps(inference_engine("SKYGOLD.NS")))
+    print(json.dumps(inference_engine("BLACKBUCK.NS")))
+    print(json.dumps(inference_engine("GICRE.NS")))
+    print(json.dumps(inference_engine("GPTINFRA.NS")))
+    print(json.dumps(inference_engine("GARUDA.NS")))
+    print(json.dumps(inference_engine("FISCHER.NS")))
+    print(json.dumps(inference_engine("LTFOODS.NS")))
+
 
 
 

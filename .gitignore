@@ -210,3 +210,5 @@ __marimo__/
 
 # Custom
 models/
+verify_indicators.py
+src/*.csv

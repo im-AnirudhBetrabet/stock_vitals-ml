@@ -1,14 +1,11 @@
 import os
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn.metrics import (
   confusion_matrix,
-  classification_report,
   roc_auc_score,
-  recall_score,
-  f1_score,
-  precision_score
 )
 
 from config.Config import config
@@ -42,7 +39,6 @@ def evaluate_model_confidence(name, model, x_test, y_test):
     return metrics
 
 def evaluate_core_metrics(name, model, x_test, y_test):
-
     y_pred        = model.predict(x_test)
     y_prob        = model.predict_proba(x_test)[:, 1]
     y_pred_custom = (y_prob > 0.6)
@@ -64,15 +60,48 @@ def evaluate_core_metrics(name, model, x_test, y_test):
         "roc_auc"   : roc_auc
     }
 
+
+def evaluate_core_metrics_at_varying_thresholds(name: str, model, x_test: pd.DataFrame, y_test: pd.DataFrame):
+    metrics = []
+    y_prob        = model.predict_proba(x_test)[:, 1]
+    for threshold in np.arange(0.50, 0.70, 0.02):
+        y_pred_custom = (y_prob > round(threshold, 2))
+        cm = confusion_matrix(y_true=y_test, y_pred=y_pred_custom, labels=[0, 1])
+
+        true_negative, false_positive, false_negative, true_positive = cm.ravel()
+
+        precision = true_positive / (true_positive + false_positive)  # Of all the models positive predictions, how many are actually positive.
+        recall    = true_positive / (true_positive + false_negative)  # Of all positive outcomes, what proportion are correctly classifed as positive.
+        f1        = 2 * ((precision * recall) / (precision + recall))
+        roc_auc   = roc_auc_score(y_test, y_prob)
+        coverage = np.mean(y_pred_custom)
+
+        metrics.append({
+            "Model"     : name,
+            "Threshold" : round(threshold, 2),
+            "Coverage"  : coverage,
+            "Precision" : precision,
+            "Recall"    : recall,
+            "F1 score"  : f1,
+            "ROC AUC"   : roc_auc
+        })
+    return metrics
+
+
 if __name__ == "__main__":
     from joblib import load
     from pathlib import Path
     from src.data import data
+    import seaborn as sns
+    import pandas as pd
+
     PARENT_DIR = Path(__file__).parent.parent
-    test_data = data.test_data
-    x_test  = test_data.drop(columns=['Target'])
-    y_test  = test_data['Target']
-    results = []
+    test_data  = data.test_data
+
+    x_test     = test_data.drop(columns=['Target'])
+    y_test     = test_data['Target']
+
+    results              = []
     threshold_metrics    = []
     threshold_metrics_df = pd.DataFrame()
     reports_path         = PARENT_DIR / config['data']['reports_path'] / config.current_model_version
@@ -82,12 +111,23 @@ if __name__ == "__main__":
         MODELS_DIR = PARENT_DIR / "models" / config.current_model_version / model_name
         model      = load(MODELS_DIR)
         results.append(evaluate_core_metrics(model_name.split(".")[0], model, x_test, y_test))
-        threshold_metrics_df = pd.concat([threshold_metrics_df, pd.DataFrame(evaluate_model_confidence(model_name.split(".")[0], model, x_test, y_test), columns=['Model', 'Threshold', 'Number of Trades', 'Precision', 'Coverage'])])
+
+        threshold_metrics_df = pd.concat([threshold_metrics_df, pd.DataFrame(evaluate_core_metrics_at_varying_thresholds(model_name.split(".")[0], model, x_test, y_test), columns=['Model', 'Threshold', 'Coverage', 'Precision', 'Recall', 'F1 score', "ROC AUC"])])
 
     # threshold_metrics_df.set_index('Model', inplace=True)
 
-    print(pd.DataFrame(results).set_index('model_name'))
-    print(threshold_metrics_df)
-
     report_name = reports_path / f'{config.current_model_version}_performance_metrics.csv'
-    threshold_metrics_df.pivot(index='Threshold', columns='Model',  values=['Precision', 'Coverage']).to_csv(report_name)
+    threshold_metrics_df.to_csv(report_name)
+    models = threshold_metrics_df['Model'].unique()
+    ticks = ["^", "o", "s"]
+    for metric in threshold_metrics_df.columns[2:]:
+        fig = plt.figure(figsize=(6, 6))
+        for idx, model in enumerate(models):
+            temp_df = threshold_metrics_df[threshold_metrics_df["Model"] == model][["Model", "Threshold", metric]]
+            sns.lineplot(data=temp_df, x='Threshold', y=metric, label=model, marker=ticks[idx])
+            plt.xlabel("Threshold")
+            plt.ylabel(metric)
+            plt.legend()
+        plt.savefig(reports_path / f"{config.current_model_version}_{metric}.png")
+
+

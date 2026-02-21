@@ -4,7 +4,9 @@ data:
   raw_path             : "data/raw"
   processed_path       : "data/processed"
   reports_path         : "model_performance_reports"
-  current_model_version: "v2"
+model:
+  current_model_version: "v2.2"
+  returns_horizon      : 15
 tickers:
   nifty_50:
     - "ADANIENT.NS"

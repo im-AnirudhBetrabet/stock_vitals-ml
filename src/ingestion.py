@@ -81,11 +81,11 @@ def fetch_index_data(index: str) -> Optional[pd.DataFrame]:
 
 
 def main():
-    for ticker in config.tickers:
-        time.sleep(random.uniform(1, 3))
-        data = fetch_ticker_data(ticker)
-        if data is not None:
-            save_data(data, ticker)
+    # for ticker in config.tickers:
+    #     time.sleep(random.uniform(1, 3))
+    #     data = fetch_ticker_data(ticker)
+    #     if data is not None:
+    #         save_data(data, ticker)
     for index in config.indices:
         time.sleep(random.uniform(1, 3))
         data = fetch_index_data(index)
