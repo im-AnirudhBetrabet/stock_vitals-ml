@@ -69,6 +69,9 @@ class Data:
     def test_data(self):
         return self._data[self._data.index > self._cutoff_date]
 
+    @property
+    def all_data(self):
+        return self._data
 data = Data()
 if __name__ == "__main__":
     print(data.training_data.shape)
