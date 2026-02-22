@@ -256,7 +256,7 @@ At higher probability thresholds (e.g., 0.60)
 ### Conclusion
 Adding market-level contextual indicators did not meaningfully improve predictive
 performance at the 5-day horizon.
-This suggests the short-term price direction is pre-dominantly influenced by noise, and
+This suggests the short-term price direction is predominantly influenced by noise, and
 the additional macro context is insufficient to resolve this variability at shorter forecast windows.
 
 <table style="border: 1px solid #ccc;">
@@ -716,22 +716,34 @@ and may degrade beyond the medium-term timeframe due to increased exposure to re
 
 ## 3 Key insights from Model 2 Experiments
 
-The series of controlled experiments conducted under the Model 2 framework highlight several important
-characteristics of the predictive signal captured by the combined technical and index feature set.
+The controlled experiments conducted under the Model 2 framework reveal several
+structural characteristics of the predictive signal derived from the combined technical
+and index feature set.
 
-Firstly, the inclusion of market-level indicators did not materially improve short-horizon (5-day) directional prediction performance.
-Class separation remained weak across all evaluated models ( ROC-AUC ≈ 0.51 - 0.52 ), suggesting that short-term price movements are 
-predominantly influenced by noise that cannot be resolved through the addition of macro market context alone.
+Firstly, the inclusion of market-level indicators did not materially improve short-horizon
+(5-day) directional prediction performance. Across both holdout and walk-forward
+validation, class separability remained weak (mean ROC-AUC ≈ 0.50 - 0.51), indicating
+that short-term price movements are largely noise-dominated under the current feature construction.
 
-Secondly, extending the prediction horizon to 10 days resulted in a measurable improvement in classification performance ( ROC-AUC ≈ 0.55 ). This
-indicates that the underlying signal captured by the feature set expresses more clearly over a medium-term timeframe, where short-term fluctuations
-are smoothed and directional momentum becomes more structurally observable.
+Secondly, increasing the prediction horizon to 10 days resulted in modest improvement
+in separability relative to the 5-day configuration. However, walk-forward validation
+revealed that this improvement was limited and remained sensitive to temporal
+variation, with mean ROC-AUC remaining in the low 0.51 range.
 
-Finally, further extending the horizon to 15 days led to a decline in predictive performance relative to the 10-day
-configuration. Both precision and recall decreased across evaluated probability thresholds, and ROC-AUC declined accordingly.
-This suggests that the temporal persistence of the captured signal is limited, and may degrade beyond medium-term horizon due
-to increased exposure to regime shifts and external market influences.
+Thirdly, extending the horizon to 15 days produced the strongest structural
+performance across expanding-window validation. Mean ROC-AUC increased to
+approximately 0.53-0.535 across models, without a disproportionate increase in
+variance across folds. This suggests that medium-term dynamics allow the captured
+signal to express more clearly as short-term fluctuations are reduced.
 
-Collectively, these findings indicate that predictive performance is highly sensitive to the alignment between feature construction
-and forecast horizon. Under the current feature set, the optimal predictive window appears to lie within the medium-term range ( approximately 7-12 trading days ),
-where the trade-off between short-term noise and long-term variability is most favorable.
+While the 10-day horizon produced the strongest performance on the fixed 2025
+holdout set, the 15-day horizon demonstrated superior stability under walk-forward validation.
+
+Nevertheless, year-to-year variability in performance indicates sensitivity to temporal
+distribution shifts. While the 15-day horizon demonstrates the strongest separability
+within the current feature framework, the signal remains modest and regime-dependent.
+
+Collectively, these findings suggest that the predictive performance improves as short-term
+noise is reduced, with the 15-day configuration providing the most structurally robust
+results under walk-forward evaluation.
+
