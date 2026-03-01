@@ -24,7 +24,7 @@ def fetch_ticker_data(ticker: str) -> Optional[pd.DataFrame]:
     print(f"Downloading Historical OHLCV Data for {ticker}")
 
     try:
-        data = yf.download(tickers=ticker, start=start_date, end=end_date)
+        data = yf.download(progress=False, tickers=ticker, start=start_date, end=end_date)
         if data.shape[0] == 0:
             print(f"No data found for ticker {ticker}")
             return None
@@ -71,7 +71,7 @@ def fetch_index_data(index: str) -> Optional[pd.DataFrame]:
 
     try:
         print(f"Downloading Historical OHLC Data for {index}")
-        data = yf.download(tickers=index, start=start_date, end=end_date)
+        data = yf.download(progress=False, tickers=index, start=start_date, end=end_date)
         if isinstance(data.columns, pd.MultiIndex):
             data.columns = data.columns.droplevel(1)
         return data
@@ -81,11 +81,11 @@ def fetch_index_data(index: str) -> Optional[pd.DataFrame]:
 
 
 def main():
-    # for ticker in config.tickers:
-    #     time.sleep(random.uniform(1, 3))
-    #     data = fetch_ticker_data(ticker)
-    #     if data is not None:
-    #         save_data(data, ticker)
+    for ticker in config.tickers:
+        time.sleep(random.uniform(1, 3))
+        data = fetch_ticker_data(ticker)
+        if data is not None:
+            save_data(data, ticker)
     for index in config.indices:
         time.sleep(random.uniform(1, 3))
         data = fetch_index_data(index)

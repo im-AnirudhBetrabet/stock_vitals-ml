@@ -1,4 +1,4 @@
-from src.data import data
+# from src.data import data
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from xgboost import XGBClassifier
 from typing import Dict
@@ -38,25 +38,43 @@ def build_voting_classifier(rfc_model, xgb_model):
         voting="soft"
     )
 
+
 def walk_forward_validation(stock_data, start_year, end_year) -> list[Dict]:
     """
     Performs a walk-forward validation of the various models.
     """
     results: list = []
     logger.info("*" * 30)
+
     for test_year in range(start_year, end_year + 1):
 
         logger.info(f">> Evaluating for training year {start_year} - {end_year} & test year {test_year}")
         train_data = stock_data[stock_data.index.year <  test_year]
         test_data  = stock_data[stock_data.index.year == test_year]
+
+        train_data = train_data.copy()
+        test_data  = test_data.copy()
+
         if len(test_data) == 0:
             continue
-        x_train = train_data.drop(columns=['Target'])
+
+
+        train_training_index_median_vol = train_data['NSEI_20d_vol'].dropna().median()
+        train_data['Vol_Regime']        = (train_data['NSEI_20d_vol'] > train_training_index_median_vol).astype(int)
+        train_data['Combined_Regime']   = train_data['Trend_Regime'] * 2 + train_data['Vol_Regime']
+
+        test_data['Vol_Regime']        = (test_data['NSEI_20d_vol'] > train_training_index_median_vol).astype(int)
+        test_data['Combined_Regime']   = test_data['Trend_Regime'] * 2 + test_data['Vol_Regime']
+
+
+
+        x_train = train_data.drop(columns=['Target', 'Vol_Regime', 'Trend_Regime', 'NSEI_200SMA'])
         y_train = train_data['Target']
 
-        x_test = test_data.drop(columns=['Target'])
+        x_test = test_data.drop(columns=['Target', 'Vol_Regime', 'Trend_Regime', 'NSEI_200SMA'])
         y_test = test_data['Target']
-
+        print(f"Train Features: {x_train.columns}")
+        print(f"Test Features: {x_test.columns}")
         negative_cases = (y_train == 0).sum()
         positive_cases = (y_train == 1).sum()
         if positive_cases == 0:
@@ -143,25 +161,29 @@ def check_metrics():
 
 
 if __name__ == "__main__":
-    start_year = 2018
-    results    = walk_forward_validation(data.all_data, 2019, 2025)
-    results_df = pd.DataFrame(results)
-
-    os.makedirs(REPORT_DIR, exist_ok=True)
+    # start_year = 2018
+    # results    = walk_forward_validation(data.all_data, 2019, 2025)
+    # results_df = pd.DataFrame(results)
+    #
+    # os.makedirs(REPORT_DIR, exist_ok=True)
     file_name  = REPORT_DIR / f"{config.current_model_version}_walk_forward_validation.csv"
-    results_df.to_csv(file_name)
+    # results_df.to_csv(file_name)
+    results_df=pd.read_csv(file_name)
     print(results_df.groupby('model_name')['roc_auc'].mean())
     print(results_df.groupby('model_name')['roc_auc'].std())
     models = results_df['model_name'].unique()
+    colors = sns.color_palette(n_colors=len(models))
     ticks = ["^", "o", "s"]
     metrics_to_plot = ["roc_auc", "precision", "recall", "f1_score"]
     for metric in metrics_to_plot:
         fig = plt.figure(figsize=(6, 6))
         for idx, model in enumerate(models):
             temp_df = results_df[results_df["model_name"] == model][["model_name", "test_year", metric]]
-            sns.lineplot(data=temp_df, x='test_year', y=metric, label=model, marker=ticks[idx])
-            plt.xlabel("Test year")
-            plt.ylabel(metric)
-            plt.legend()
+            model_color = colors[idx]
+            sns.lineplot(data=temp_df, x='test_year', y=metric, label=model, marker=ticks[idx], color=model_color)
+            plt.axhline(y=temp_df[metric].mean(), label=model, linestyle='--', color=model_color)
+        plt.xlabel("Test year")
+        plt.ylabel(metric)
+        plt.legend()
         plt.savefig(REPORT_DIR / f"{config.current_model_version}_{metric}.png")
     check_metrics()

@@ -125,6 +125,10 @@ def apply_technical_indicators_to_indices(index: str, df: pd.DataFrame) -> pd.Da
     df[f'{index}_above_50SMA'] = ( df['Close'] > sma_50 ).astype(int)
     df[f'{index}_20d_vol']     = df['Close'].pct_change().rolling(window=20).std()
     df                         = calculate_rsi(df, window=14)
+    if index == "NSEI":
+        df[f"{index}_200SMA"] = df['Close'].rolling(window=200).mean()
+        df['Trend_Regime'] = (df['Close'] > df[f"{index}_200SMA"]).astype(int)
+        df = df.drop(columns=[f"{index}_200SMA"])
     df.rename(columns={'14_RSI' : f'{index}_rsi_14'}, inplace=True)
     return df
 

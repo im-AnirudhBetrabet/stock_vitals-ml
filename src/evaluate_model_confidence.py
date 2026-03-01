@@ -57,7 +57,8 @@ def evaluate_core_metrics(name, model, x_test, y_test):
         "precision" : precision,
         "recall"    : recall,
         "f1_score"  : f1,
-        "roc_auc"   : roc_auc
+        "roc_auc"   : roc_auc,
+        "coverage"  : np.mean(y_pred_custom)
     }
 
 
